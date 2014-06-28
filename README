@@ -1,0 +1,5 @@
+This program is designed to divide up Italian words into syllables. It uses a modified and reduced version of Luca Iacoponi's Sylli
+program, which itself uses the Sonority Scale as a basis for syllabification.
+
+Ultimately, this will be part of a larger project to create a program capable of analyzing verses of Itlian poetry and providing
+important information, such as descriptions of meter, syllabification, and interesting syntactic or phonetic features.
