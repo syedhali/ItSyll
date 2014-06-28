@@ -1,0 +1,69 @@
+[Segments]
+# Before the syllabification happens,
+# a transducer will convert the input into phonological
+# objects. This section specifies the vocabulary to use for the
+# translation, in the form X = z, w, y, where:
+# X is the input form, the one to find in the string to syllabify
+# z is the phonological segment, the one will be printed 
+# w is the sonority used by the syllabification algorithm
+# y is the phonological class (printed if output = cvg is chosen)
+# You may add, remove or edit any segment to adapt it to 
+# your alphabet or language. For example, if want to 
+# add a central /i/ to the vowel inventory
+# you will write something like:
+# I = I, 22, V
+
+# Vowels
+a = a, 26, V
+à = a, 26, V
+e = e, 22, V
+è = e, 22, V
+é = e, 22, V
+o = o, 22, V
+ò = o, 22, V
+i = i, 19, V
+ì = i, 19, V
+u = u, 19, V
+ù = u, 19, V
+Q = Q, 18, V
+
+# Approximants
+w = w, 20, G
+j = j, 18, G
+y = j, 18, G
+
+# Sonorants
+# L = L, 14, S
+r = r, 14, S
+l = l, 12, S
+m = m, 11, N
+n = n, 11, N
+s = s, 0, F
+
+# Fricatives
+v = v, 9, F
+f = f, 7, F
+# S = S, 7, F
+# Z = Z, 7, F
+z = z, 7, F
+
+# Affricates
+ge = dZ, 6, A
+gi = dz, 6, A
+ce = tS, 4, A
+ci = ts, 4, A
+
+# Stops
+b = b, 3, O
+d = d, 3, O
+g = g, 3, O
+gh = g, 3, O
+p = p, 1, O
+t = t, 1, O
+k = k, 1, O
+c = k, 1, O
+ch = k, 1, O
+h = h, 5, O
+
+# Punctuation
+' = ', 99, 0
