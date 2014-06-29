@@ -6,24 +6,25 @@
 # syllabic boundaries. Thus the sound of the letters are used to determine the division of the word, rather than a
 # brute force, rule-based program that relies on dividing a word into consonants and vowels.
 
-# The values of the Sonority Scale can be found in sonorityfile.txt. These values were taken from the masters thesis of 
-# Luca Iacoponi, "Dividing CLIPS' Phonemic Layer into Syllables: An SPP Based Syllabification Program with Python/NLTK." 
+# The values of the Sonority Scale can be found in sonorityfile.txt. These values were taken from the masters thesis of
+# Luca Iacoponi, "Dividing CLIPS' Phonemic Layer into Syllables: An SPP Based Syllabification Program with Python/NLTK."
 
 # The thesis can be found here:
 # http://eden.rutgers.edu/~li51/php/papers/iacoponi2011clipssyllabification.pdf
 #
 # He in turn modified the values and algorithm originally created by:
-# Cutugno, F., Passaro, G. & Petrillo, M., 2001. Sillabificazione fonologica e sillabificazione fonetica. 
+# Cutugno, F., Passaro, G. & Petrillo, M., 2001. Sillabificazione fonologica e sillabificazione fonetica.
 #   Dans Atti del XXXIII, Congresso della Società di Linguistica Italiana, Bulzoni Roma. pp. 205–232.
 
 
 # To begin with, we need an object for each letter that is capable of retaining information regarding natural class
-# and sonority level. Each letter is to be assigned it's phonetic equivalent (e.g. "c" -> "k"), it's sonority value, 
+# and sonority level. Each letter is to be assigned it's phonetic equivalent (e.g. "c" -> "k"), it's sonority value,
 # and it's natural class. Classes are V-owels, G-lides, S-onorants, N-asals, F-ricatives, A-ffricates, O-cclusives.
 # There is also the property 'pclass' which simply returns C or V depending on the letter's status as a vowel
 # or a consonant.
 
 import configparser
+import re
 
 class WeightedLetter:
     def __init__(self, properties):
@@ -39,87 +40,140 @@ class WeightedLetter:
         else:
             self.cvcv = 'C'
 
-# The following function opens up the sonority file and parses it using configparser. The file is organized as follows:
+class Phrase:
 
-# [Segments]
-# A = a, 26, V
-#
-# This is the information that will be stored in each weighted letter object, along with the original letter.
-# Thus, fetch_lexicon("c") -> c, k, 1, O   // where 1 is the sonority value, and O stands for Occlusive
-def fetch_lexicon(input_string):
-    sonfile = "sonorityfile.txt"
-    config = configparser.ConfigParser()
-    config.read(sonfile)
-    try:
-        value = config.get("Segments", input_string)
-        if value != None:
-            return input_string + ", " + value
+    def __init__(self, phrase):
+            self.sentence = (phrase.split())
+            self.nopunct = (''.join(re.split('\W', str(self.sentence))))
+            self.syllphrase = ''
+
+    def fetch_lexicon(self, input_string):
+        config = configparser.ConfigParser()
+        config.read("sonorityfile.txt")
+        try:
+            value = config.get("Segments", input_string)
+            if value != None:
+                return input_string + ", " + value
+            else:
+                return False
+        except Exception:
+            return False
+
+    def Transpose(self, input_string):
+        ph_sequence = []
+        for segment in input_string:
+            if self.fetch_lexicon(segment):
+                letter = (self.fetch_lexicon(segment))
+                ph_sequence.append(WeightedLetter(letter.split(',')))
+            else:
+                letter = (WeightedLetter([str(segment), '0', '0', '0']))
+                ph_sequence.append(letter)
+        return ph_sequence
+
+    def Syllabify(self, sequence):
+        phrase = [sequence[0].original]
+        null_segment = WeightedLetter(['0', '0', '0', '0'])
+        sequence.append(null_segment)
+        len_sequence = len(sequence)
+        for i in range(1, len_sequence - 1):
+# If the current sound does not have any sonority (meaning that it is probably punctuation),
+# then it should assume the sonority of the preceding letter. Thus, when the loop iterates to
+# the next letter, it will compare this value, rather than a value of 0.
+            if (sequence[i].son == 0):
+                sequence[i].son = sequence[i-1].son
+                phrase.append(sequence[i].original)
+# If the subsequent character is an apostrophe, its sonority value should equal that of the
+# following character.
+            elif (sequence[i+1].phonetic == "'" and sequence[i+2].pclass == "V"):
+                sequence[i+1].son = sequence[i+2].son
+                if (sequence[i-1].son > sequence[i].son and \
+                sequence[i+1].son > sequence[i].son) or \
+                    (sequence[i-1].son == sequence[i].son and \
+                    sequence[i].cvcv != "V"):
+                    phrase.append('|')
+                    phrase.append(sequence[i].original)
+                else:
+                    phrase.append(sequence[i].original)
+# Always separate A-E
+            else:
+                if (sequence[i].phonetic == "e") and \
+                (sequence[i-1].phonetic == "a"):
+                    phrase.append('|')
+                    phrase.append(sequence[i].original)
+# If there is Dieresis (i.e. the vowels are split up), the first will typically be marked
+# with an umlaut. In the sonority file these will be marked as pclass "D." Automatically
+# please a syllable boundary.
+                elif (sequence[i].pclass == "D"):
+                    phrase.append(sequence[i].original)
+                    phrase.append('|')
+# This is the basic algorithm. If the sonority value of the character under analysis is
+# less than both the preceding character and the following character, then it is a sonority
+# minimum, and it is therefore a syllable boundary. Alternatively, if its sonority value is
+# the same as the previous character's and it is not a vowel, then it is a syllable boundary.
+# This is to check for double consonants such as in the word "bello."
+                elif (sequence[i-1].son > sequence[i].son  and \
+                    sequence[i+1].son > sequence[i].son) or \
+                    (sequence[i-1].son == sequence[i].son and \
+                    sequence[i].cvcv != "V"):
+                        phrase.append('|')
+                        phrase.append(sequence[i].original)
+                else:
+                    phrase.append(sequence[i].original)
+        return ''.join(phrase)
+
+    def WordBoundaries(self, sequence):
+        output = []
+        sequence.append("#")
+        for i in range(0, len(sequence) - 1):
+# If the last letter of a word is not alphanumeric, take the letter before that. This is to avoid
+# counting apostrophes, commas, or other punctuation.
+            if (sequence[i][-1].isalpha()):
+                lastlett = sequence[i][-1]
+            else:
+                lastlett = sequence[i][-2]
+# If the last letter of a word is a vowel, and the following word begins with a vowel or an H,
+# then no syllable boundary is placed, due to elision.
+            if (self.is_Vowel(lastlett) == True) and (self.is_Vowel(sequence[i+1][0]) == True) or \
+            (sequence[i+1] == "#"):
+                output.append(sequence[i])
+            elif (sequence[i+1][0].isalpha() == False):
+                output.append(sequence[i])
+# Otherwise, between two consonants, or a vowel and a consonant, a syllable boundary is placed.
+            else:
+                sequence[i] = sequence[i] + " |"
+                output.append(sequence[i])
+        return output
+
+
+    def is_Vowel(self, segment):
+        if segment.lower() in "aeiouàèéìíòùh":
+            return True
         else:
             return False
-    except Exception:
-        return False
-
-# This function takes a single word as its input and returns a list of WeightedLetter objects for each letter in that word.
-def input_transpose(input_string):
-    ph_sequence = []
-    input_string = list(input_string)
-    for index, segment in enumerate(input_string):
-        if fetch_lexicon(segment):
-            letter = (fetch_lexicon(segment))
-            ph_sequence.append(WeightedLetter(letter.split(',')))
-    return ph_sequence
-
-# This function takes as its input a list of WeightedLetter objects. It then determines syllable boundaries based on
-# a sonority hierarchy. The output will be the original word with a '.' placed at each syllable boundary.
-# Originally the boundaries list was used for something else, and I left it in in case I need to
-# do something else with it later. 
-def syllabify(sequence):
-    boundaries = []
-
-# Since the for loop begins on sequence[1], the final output phrase should begin with the first letter of the word.
-    phrase = [sequence[0].original]
-# A null segment is added to the end of the list to prevent any indexing errors.
-    null_segment = WeightedLetter(['0', '0', '0', '0'])
-    sequence.append(null_segment)
-    len_sequence = len(sequence)
-# The sonority hierarchy is incredibly simple. Syllable boundaries are marked based on sonority minimums. That is, place a 
-# syllable boundary if either 1) the letter under analysis has a sonority value less than the preceding letter and less than the 
-# following letter, or 2) the letter under analysis has the same sonority value as the preceding letter.
-# i.e. if (x-1 > x < x+1) or (x-1 == x)  ---> boundary | x
-# Each letter and boundary marker are then simply appended to the final output string.
-    for i in range(1, len_sequence - 1):
-            if (sequence[i-1].son > sequence[i].son  and \
-            sequence[i+1].son > sequence[i].son) or \
-            sequence[i-1].son == sequence[i].son:
-                boundaries.append(i)
-                phrase.append('.')
-                phrase.append(sequence[i].original)
-            else:
-                phrase.append(sequence[i].original)
-# Remove the null sequence before returning the string.
-    sequence = sequence[:-1]
-    return ''.join(phrase)
 
 
-# This function is a rather rudimentary method for analyzing a sentence and returning that same sentence with syllables marked.
-def syllable_sequencer(phrase):
-    sequence = []
-    final = []
-    phrase = phrase.split()
-    for word in phrase:
-        sequence.append(input_transpose(word))
-    for segment in sequence:
-        final.append(syllabify(segment))
-    return ' '.join(final)
+    def Syllables(self):
+        output = []
+        phrase = self.sentence
+        for word in phrase:
+            output.append(self.Syllabify(self.Transpose(word)))
+        output = self.WordBoundaries((output))
+        self.syllphrase = ' '.join((output))
+        return self.syllphrase
 
-# And lastly, a rudimentary function for reading a .txt file, reading and syllabizing each line, and then writing a new file.
+
+    def SyllCount(self):
+        return len(self.syllphrase.split("|"))
+
+
 def file_syllable(file):
-    newfile = file.replace(".txt", "_syllables.txt")
     data = open(file, "r").readlines()
-    with open(newfile, "w") as f:
-        for line in data:
-            print(syllable_sequencer(line))
-            f.write(syllable_sequencer(line) + "\n")
-    print("Done.")
+    newline = []
+    for line in data:
+        if len(line) > 1:
+            newline = (Phrase(line))
+            print(newline.Syllables(), " ", newline.SyllCount())
+        else:
+            print("")
 
-file_syllable("petrarca2_wordlist.txt")
+file_syllable("aminta.txt")

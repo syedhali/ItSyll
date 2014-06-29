@@ -15,16 +15,22 @@
 
 # Vowels
 a = a, 26, V
-à = a, 26, V
-e = e, 22, V
-è = e, 22, V
-é = e, 22, V
-o = o, 22, V
-ò = o, 22, V
-i = i, 19, V
-ì = i, 19, V
+à = a, 26, A
+ä = a, 26, D
+e = e, 24, V
+è = e, 24, V
+é = e, 24, A
+o = o, 19, V
+ò = o, 28, A
+ö = o, 19, D
+i = i, 22, V
+ì = i, 28, A
+í = i, 22, A
+ï = i, 22, D
 u = u, 19, V
-ù = u, 19, V
+ù = u, 19, A
+ú = u, 19, V
+ü = u, 19, D
 Q = Q, 18, V
 
 # Approximants
@@ -38,7 +44,8 @@ r = r, 14, S
 l = l, 12, S
 m = m, 11, N
 n = n, 11, N
-s = s, 0, F
+s = s, 1, F
+x = s, 1, F
 
 # Fricatives
 v = v, 9, F
@@ -58,12 +65,14 @@ b = b, 3, O
 d = d, 3, O
 g = g, 3, O
 gh = g, 3, O
-p = p, 1, O
-t = t, 1, O
-k = k, 1, O
-c = k, 1, O
-ch = k, 1, O
-h = h, 5, O
+p = p, 2, O
+t = t, 2, O
+k = k, 2, O
+c = k, 2, O
+ch = k, 2, O
+h = h, 12, O
 
 # Punctuation
-' = ', 99, 0
+’ = ', 0, P
+' = ', 0, P
+‘ = ', 0, P
